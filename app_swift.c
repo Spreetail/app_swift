@@ -387,6 +387,7 @@ static int app_exec(struct ast_channel *chan, const char *data)
 
 	params = swift_params_new(NULL);
 	swift_params_set_string(params, "audio/encoding", "ulaw");
+	swift_params_set_string(params, "audio/channels", "1");
 	swift_params_set_string(params, "audio/sampling-rate", "8000");
 	swift_params_set_string(params, "audio/output-format", "raw");
 	swift_params_set_string(params, "tts/text-encoding", "utf-8");
@@ -414,6 +415,10 @@ static int app_exec(struct ast_channel *chan, const char *data)
 	}
 #endif
 
+	ast_log(LOG_DEBUG, "Port is %d\n", port);
+
+	ast_log(LOG_DEBUG, "Config is %s\n", SWIFT_CONFIG_FILE);
+
 	ast_log(LOG_DEBUG, "Config voice is %s via %s\n", cfg_voice, SWIFT_CONFIG_FILE);
 
 	/* allow exten => x,n,Set(SWIFT_VOICE=Callie) */
@@ -422,10 +427,14 @@ static int app_exec(struct ast_channel *chan, const char *data)
 		ast_log(LOG_DEBUG, "Config voice override to %s via SWIFT_VOICE\n", cfg_voice);
 	}
 
+  	ast_log(LOG_DEBUG, "Going to set the voice now...");
+	
 	if ((voice = swift_port_set_voice_by_name(port, cfg_voice)) == NULL) {
 		ast_log(LOG_ERROR, "Failed to set voice.\n");
 		goto exception;
 	}
+
+	ast_log(LOG_DEBUG, "Voice set correctly");
 
 
 #if defined _SWIFT_VER_6
@@ -434,6 +443,7 @@ static int app_exec(struct ast_channel *chan, const char *data)
 	event_mask = SWIFT_EVENT_AUDIO | SWIFT_EVENT_END;
 #endif
 
+	ast_log(LOG_DEBUG, "Setting Callback");
 	swift_port_set_callback(port, &swift_cb, event_mask, ps);
 
 	if (SWIFT_FAILED(swift_port_speak_text(port, text, 0, NULL, &tts_stream, NULL))) {
@@ -499,7 +509,7 @@ static int app_exec(struct ast_channel *chan, const char *data)
 					ps->qc -= len - availatend;
 					ps->pq_r += len - availatend;
 				} else {
-					ast_log(LOG_DEBUG, "Easy read; %d bytes and %d at end, %d free\n", len, availatend, cfg_buffer_size - ps->qc);
+					// ast_log(LOG_DEBUG, "Easy read; %d bytes and %d at end, %d free\n", len, availatend, cfg_buffer_size - ps->qc);
 					memcpy(myf.frdata, ps->pq_r, len);
 					ps->qc -= len;
 					ps->pq_r += len;
@@ -533,7 +543,7 @@ static int app_exec(struct ast_channel *chan, const char *data)
 					ast_log(LOG_DEBUG, "ast_write failed\n");
 				}
 
-				ast_log(LOG_DEBUG, "wrote a frame of %d\n", len);
+				// ast_log(LOG_DEBUG, "wrote a frame of %d\n", len);
 
 				if (ps->qc < 0) {
 					ast_log(LOG_DEBUG, "queue claims to contain negative bytes. Huh? qc < 0\n");
